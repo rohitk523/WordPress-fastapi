@@ -1,41 +1,37 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional
-from pydantic import BaseModel
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+import os
 
 app = FastAPI()
 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your WordPress domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Sample data models
-class ServiceEvent(BaseModel):
-    title: str
-    date: str
-    description: Optional[str] = None
+# Setup templates
+templates = Jinja2Templates(directory="templates")
 
-# Sample data
-events = [
-    {"title": "Sunday Service", "date": "2024-12-01", "description": "Morning Worship"},
-    {"title": "Prayer Meeting", "date": "2024-12-03", "description": "Evening Prayer"}
-]
-
-@app.get("/")
-def read_root():
-    return {"message": "Church Tools API is running!"}
+@app.get("/church-page", response_class=HTMLResponse)
+async def get_church_page(request: Request):
+    return templates.TemplateResponse("church_page.html", {"request": request})
 
 @app.get("/events")
-def get_events():
+async def get_events():
+    events = [
+        {"title": "Sunday Service", "date": "2024-12-01"},
+        {"title": "Prayer Meeting", "date": "2024-12-03"},
+        {"title": "Youth Group", "date": "2024-12-04"},
+        {"title": "Bible Study", "date": "2024-12-05"}
+    ]
     return {"events": events}
 
-@app.get("/service/{service_id}")
-def get_service(service_id: int):
-    if service_id < len(events):
-        return events[service_id]
-    return {"error": "Service not found"}
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
